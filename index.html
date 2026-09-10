@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cyber Snake — Cyber Academy</title>
+  <style>
+    :root { --ink:#eaf4ff; --muted:#93a4bd; --panel:#101a2a; --line:#263853; --cyan:#3be6d0; --blue:#5ca8ff; --danger:#ff6b7a; --gold:#ffd166; }
+    * { box-sizing:border-box; }
+    body { margin:0; min-height:100vh; color:var(--ink); font:16px/1.45 Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background:#07101d radial-gradient(circle at 8% 12%, #153c5d 0, transparent 28rem), radial-gradient(circle at 90% 86%, #1c315d 0, transparent 27rem); }
+    .shell { width:min(1120px, calc(100% - 32px)); margin:auto; padding:28px 0 40px; }
+    header { display:flex; align-items:center; justify-content:space-between; gap:20px; margin-bottom:24px; }
+    .brand { display:flex; align-items:center; gap:12px; font-weight:800; letter-spacing:.02em; }
+    .mark { display:grid; place-items:center; width:38px; height:38px; border:1px solid #58d7d2; border-radius:11px; color:var(--cyan); background:#0a2938; font-size:21px; }
+    .tag { color:var(--cyan); font-size:12px; font-weight:800; letter-spacing:.12em; text-transform:uppercase; }
+    .layout { display:grid; grid-template-columns:minmax(0, 1fr) 286px; gap:20px; }
+    .game-card, .side-card { border:1px solid var(--line); border-radius:20px; background:linear-gradient(145deg, rgba(19,31,49,.96), rgba(10,18,32,.96)); box-shadow:0 20px 50px rgba(0,0,0,.22); }
+    .game-card { padding:20px; }
+    .hud { display:flex; justify-content:space-between; gap:12px; align-items:center; margin:0 0 16px; }
+    h1 { margin:0; font-size:clamp(1.25rem, 3vw, 1.65rem); }
+    .score { display:flex; gap:8px; align-items:center; color:var(--muted); font-size:14px; }
+    .score strong { padding:5px 9px; border-radius:8px; background:#152b41; color:var(--cyan); font-size:16px; }
+    .board-wrap { position:relative; width:min(100%, 640px); margin:auto; }
+    canvas { display:block; width:100%; aspect-ratio:1; border:1px solid #2b4665; border-radius:14px; background:#071522; image-rendering:pixelated; }
+    .side-card { padding:22px; }
+    .side-card h2 { margin:0 0 10px; font-size:1.05rem; }
+    .side-card p { color:var(--muted); font-size:.91rem; }
+    .keys { display:grid; grid-template-columns:repeat(3, 1fr); gap:7px; margin:18px 0 22px; }
+    kbd { display:grid; place-items:center; padding:7px; border:1px solid #34506d; border-bottom-width:3px; border-radius:7px; background:#17283b; color:#dcecff; font:700 12px inherit; }
+    .legend { display:grid; gap:12px; margin:0; padding:16px 0 0; border-top:1px solid var(--line); }
+    .legend div { display:flex; gap:10px; align-items:flex-start; color:var(--muted); font-size:.88rem; }
+    .dot { width:10px; height:10px; margin-top:5px; flex:none; border-radius:50%; background:var(--cyan); box-shadow:0 0 12px var(--cyan); }
+    .dot.gold { background:var(--gold); box-shadow:0 0 12px var(--gold); }
+    .overlay { position:absolute; inset:0; display:grid; place-items:center; padding:18px; border-radius:14px; background:rgba(4,10,20,.79); backdrop-filter:blur(7px); text-align:center; }
+    .overlay[hidden] { display:none; }
+    .modal { width:min(100%, 510px); max-height:100%; overflow:auto; padding:24px; border:1px solid #3b5675; border-radius:17px; background:#101d2e; box-shadow:0 22px 70px #000; }
+    .modal .tag { margin-bottom:8px; }
+    .modal h2 { margin:0; font-size:1.3rem; }
+    .modal p { color:#c5d3e2; }
+    .choices { display:grid; gap:9px; margin-top:18px; text-align:left; }
+    button { appearance:none; border:1px solid #3b5776; border-radius:10px; padding:12px 13px; cursor:pointer; color:var(--ink); background:#16283c; font:600 14px/1.3 inherit; text-align:left; transition:.16s ease; }
+    button:hover, button:focus-visible { border-color:var(--cyan); background:#17364a; outline:none; transform:translateY(-1px); }
+    button.correct { border-color:#49d7a5; background:#123c36; } button.wrong { border-color:var(--danger); background:#482330; }
+    .feedback { min-height:25px; margin:14px 0 0; font-size:.92rem; font-weight:700; }
+    .feedback.ok { color:#6fe9bf; } .feedback.no { color:#ff9aa6; }
+    .primary { margin-top:17px; text-align:center; color:#062027; background:var(--cyan); border-color:var(--cyan); font-weight:900; }
+    .primary:hover, .primary:focus-visible { color:#062027; background:#72f4e2; }
+    .progress { color:var(--cyan); font-size:.9rem; font-weight:800; }
+    .final-score { font-size:3.2rem; font-weight:900; color:var(--gold); margin:4px 0; }
+    @media (max-width:760px) { .layout { grid-template-columns:1fr; } .side-card { order:-1; padding:16px 18px; } .side-card p, .legend { display:none; } .keys { margin:8px 0 0; max-width:180px; } }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header><div class="brand"><span class="mark">⌁</span> CYBER SNAKE</div><span class="tag">Cyber Academy · Évaluation</span></header>
+    <div class="layout">
+      <section class="game-card" aria-label="Jeu du serpent">
+        <div class="hud"><h1>Collectez les briques de savoir</h1><div class="score">Bonnes réponses <strong id="score">0 / 10</strong></div></div>
+        <div class="board-wrap"><canvas id="board" width="600" height="600" aria-label="Plateau du jeu"></canvas>
+          <div class="overlay" id="startOverlay"><div class="modal"><div class="tag">Prêt pour le défi ?</div><h2>Apprenez en rampant.</h2><p>Dirigez le serpent vers les briques. Chaque brique déclenche une question de cybersécurité : choisissez la meilleure réponse pour poursuivre.</p><button class="primary" id="startButton">Démarrer la mission</button></div></div>
+          <div class="overlay" id="quizOverlay" hidden><div class="modal"><div class="tag" id="category"></div><div class="progress" id="progress"></div><h2 id="question"></h2><div class="choices" id="choices"></div><p class="feedback" id="feedback"></p><button class="primary" id="continueButton" hidden>Continuer le jeu</button></div></div>
+          <div class="overlay" id="finalOverlay" hidden><div class="modal"><div class="tag">Mission terminée</div><div class="final-score" id="finalScore"></div><h2 id="finalTitle"></h2><p id="finalText"></p><button class="primary" id="restartButton">Rejouer la mission</button></div></div>
+        </div>
+      </section>
+      <aside class="side-card"><h2>Comment jouer</h2><p>Utilisez les flèches du clavier ou ZQSD. Évitez les murs et votre propre trace.</p><div class="keys"><kbd>↑<br>Z</kbd><kbd>←<br>Q</kbd><kbd>↓<br>S</kbd><kbd>→<br>D</kbd></div><div class="legend"><div><span class="dot"></span><span><b>Serpent</b><br>Votre parcours d’apprentissage.</span></div><div><span class="dot gold"></span><span><b>Brique</b><br>Un point de contrôle à valider.</span></div></div></aside>
+    </div>
+  </main>
+  <script>
+    const questions = [
+      ['IAM','Pourquoi appliquer le principe du moindre privilège ?','Pour donner les droits administrateur à tout le monde.','Pour limiter les droits uniquement aux horaires de bureau.','Pour n’accorder que les accès nécessaires à une mission.'],
+      ['IAM','Quel facteur est le plus robuste pour une MFA résistante au phishing ?','Un code secret partagé dans l’équipe.','Un code SMS envoyé sur le téléphone.','Une clé de sécurité FIDO2/WebAuthn liée au site.'],
+      ['IAM','À quoi sert une revue périodique des accès ?','À créer automatiquement de nouveaux comptes.','À vérifier seulement les comptes administrateurs.','À confirmer que chaque droit reste justifié et retirer les accès inutiles.'],
+      ['IAM','Quel est le bon réflexe lors du départ d’un collaborateur ?','Conserver son compte pour lire ses anciens e-mails.','Changer seulement son mot de passe à la fin du mois.','Désactiver sans délai ses comptes et révoquer ses sessions.'],
+      ['IAM','Que protège principalement la gestion des comptes à privilèges (PAM) ?','Les fonds d’écran des administrateurs.','Uniquement les mots de passe des stagiaires.','Les accès puissants, en les contrôlant, traçant et limitant dans le temps.'],
+      ['IAM','Quel risque réduit le SSO associé à la MFA ?','Le besoin de former les équipes.','La multiplication des mots de passe et les réutilisations risquées.','Toute compromission, même avec des comptes volés.'],
+      ['IAM','Pourquoi éviter les comptes partagés ?','Ils sont toujours plus rapides.','Ils compliquent surtout la personnalisation du bureau.','Ils empêchent l’attribution fiable des actions à une personne.'],
+      ['IAM','Qu’est-ce qu’une authentification adaptative ?','Un mot de passe qui change selon la météo.','Une MFA demandée aléatoirement.','Une vérification renforcée selon le contexte de risque (appareil, lieu, comportement).'],
+      ['GRC','Quel est l’objectif d’une analyse de risques ?','Éliminer tous les risques sans exception.','Lister les risques sans décider d’action.','Évaluer vraisemblance et impact pour prioriser le traitement.'],
+      ['GRC','Qu’est-ce qu’un risque résiduel ?','Un risque qui n’existe que dans les archives.','Le risque évalué avant toute mesure de sécurité.','Le risque qui demeure après la mise en place des mesures.'],
+      ['GRC','Quel élément rend une politique de sécurité actionnable ?','Un slogan inspirant uniquement.','Un document secret inaccessible aux équipes.','Des règles claires, des responsables désignés et des contrôles de suivi.'],
+      ['GRC','Dans le traitement d’un risque, "transférer" signifie :','Ignorer le risque en espérant qu’il disparaisse.','Changer le nom du risque dans le registre.','Faire porter une part de la conséquence financière à un tiers, par exemple via une assurance.'],
+      ['GRC','Pourquoi conserver des preuves d’audit ?','Pour augmenter le volume de documents.','Pour prouver seulement que les outils sont installés.','Pour démontrer que les contrôles sont conçus et réellement opérés.'],
+      ['GRC','Qui porte en premier lieu la responsabilité d’un risque métier ?','Le dernier arrivant de l’équipe IT.','Uniquement l’auditeur externe.','Le propriétaire du risque, avec l’appui des équipes de contrôle.'],
+      ['GRC','Une exigence de conformité doit être suivie :','Seulement à la date de l’audit.','Uniquement si un concurrent la suit.','Dans la durée, avec des contrôles et une veille sur les évolutions.'],
+      ['GRC','Quel indicateur est le plus utile pour piloter un contrôle ?','La couleur préférée du responsable.','Le nombre de pages de la politique.','Un indicateur mesurant son efficacité, avec un seuil et une fréquence de suivi.'],
+      ['SOC','Quelle est la première étape utile face à une alerte SOC ?','Supprimer immédiatement tous les journaux.','Déclarer un incident sans examiner le contexte.','Trier et qualifier l’alerte pour déterminer sa crédibilité et sa priorité.'],
+      ['SOC','Pourquoi synchroniser l’heure des systèmes ?','Pour faire démarrer les ordinateurs plus vite.','Pour faciliter seulement les réunions à distance.','Pour corréler correctement les événements dans les journaux.'],
+      ['SOC','Qu’est-ce qu’un faux positif ?','Une attaque réussie garantie.','Une alerte qui contient un peu moins de données.','Une alerte signalant à tort une activité comme malveillante.'],
+      ['SOC','Pendant un incident de ransomware, quelle action limite prioritairement la propagation ?','Payer immédiatement sans analyse.','Redémarrer tous les serveurs au hasard.','Isoler les systèmes affectés selon le plan de réponse à incident.'],
+      ['SOC','À quoi sert un playbook de réponse à incident ?','À décorer la salle du SOC.','À remplacer tous les analystes.','À guider des actions cohérentes, rapides et traçables pour un scénario donné.'],
+      ['SOC','Pourquoi centraliser les logs dans un SIEM ?','Pour empêcher toute alerte de se déclencher.','Pour archiver uniquement les erreurs réseau.','Pour rechercher, corréler et détecter des comportements suspects à grande échelle.'],
+      ['SOC','Qu’est-ce que le confinement d’un incident ?','Une suppression définitive de tous les équipements.','Une analyse théorique sans action.','Des mesures temporaires pour stopper l’impact avant l’éradication.'],
+      ['Sécurité de l’IA','Quel risque est spécifique à l’injection de prompt ?','Un écran qui s’éteint après une requête.','Un modèle qui répond avec un léger délai.','Des instructions malveillantes qui tentent de détourner le comportement du modèle.'],
+      ['Sécurité de l’IA','Quelle mesure protège les données envoyées à un modèle d’IA ?','Envoyer toutes les données brutes pour améliorer les réponses.','Masquer seulement le nom du fichier.','Minimiser les données, filtrer les informations sensibles et encadrer les usages.'],
+      ['Sécurité de l’IA','Pourquoi tester un modèle contre les jailbreaks ?','Pour lui apprendre à contourner les règles.','Pour mesurer uniquement sa vitesse de réponse.','Pour vérifier sa résistance aux tentatives de contourner ses garde-fous.'],
+      ['Sécurité de l’IA','Qu’est-ce que l’empoisonnement de données ?','Mettre un antivirus sur les données.','Supprimer les données trop anciennes.','Introduire des données malveillantes afin d’influencer l’entraînement ou le comportement du modèle.'],
+      ['Sécurité de l’IA','Quel contrôle est important avant de connecter une IA à un outil métier ?','Lui donner tous les droits pour qu’elle soit efficace.','Lui donner des droits lecture sur tous les systèmes.','Limiter ses permissions, valider les actions sensibles et journaliser ses appels.'],
+      ['Sécurité de l’IA','Pourquoi une supervision humaine est-elle utile pour des décisions à impact élevé ?','Parce que l’IA ne peut jamais être utilisée.','Parce qu’elle rend le modèle plus coloré.','Parce qu’elle permet de contrôler les erreurs, biais et décisions contestables.'],
+      ['Sécurité de l’IA','Que doit inclure une évaluation de fournisseur d’IA ?','La popularité de sa mascotte.','Seulement le prix de l’abonnement.','Ses garanties de sécurité, de confidentialité, de gouvernance des données et de conformité.']
+    ];
+    const canvas = document.querySelector('#board'), ctx = canvas.getContext('2d');
+    const cell = 25, cells = 24; let snake, direction, nextDirection, food, timer, quizSet, questionIndex, correct, running;
+    const $ = s => document.querySelector(s);
+    function chooseQuestions() { const groups = Object.groupBy(questions, q => q[0]); const chosen = Object.values(groups).flatMap(group => shuffle(group).slice(0, 2)); return shuffle(chosen.concat(shuffle(questions.filter(q => !chosen.includes(q))).slice(0, 2))); }
+    function shuffle(a) { return [...a].sort(() => Math.random() - .5); }
+    function placeFood() { do { food = {x:Math.floor(Math.random()*cells), y:Math.floor(Math.random()*cells)}; } while (snake.some(s => s.x === food.x && s.y === food.y)); }
+    function draw() { ctx.fillStyle='#071522'; ctx.fillRect(0,0,600,600); ctx.strokeStyle='rgba(75,122,158,.13)'; ctx.lineWidth=1; for(let i=0;i<=cells;i++){ctx.beginPath();ctx.moveTo(i*cell,0);ctx.lineTo(i*cell,600);ctx.stroke();ctx.beginPath();ctx.moveTo(0,i*cell);ctx.lineTo(600,i*cell);ctx.stroke();} ctx.fillStyle='#ffd166'; ctx.shadowColor='#ffd166';ctx.shadowBlur=16;ctx.fillRect(food.x*cell+4,food.y*cell+4,cell-8,cell-8);ctx.shadowBlur=0; snake.forEach((part,i)=>{ctx.fillStyle=i?'#3be6d0':'#91fff1';ctx.fillRect(part.x*cell+2,part.y*cell+2,cell-4,cell-4);}); }
+    function tick() { direction=nextDirection; const head={x:snake[0].x+direction.x,y:snake[0].y+direction.y}; if(head.x<0||head.x>=cells||head.y<0||head.y>=cells||snake.some(p=>p.x===head.x&&p.y===head.y)){ endGame('Collision détectée','Votre progression est arrêtée, mais vous pouvez relancer une mission complète.'); return; } snake.unshift(head); if(head.x===food.x&&head.y===food.y){ clearInterval(timer); running=false; showQuiz(); } else snake.pop(); draw(); }
+    function showQuiz() { const q=quizSet[questionIndex]; $('#category').textContent=q[0]; $('#progress').textContent=`Question ${questionIndex+1} sur 10`; $('#question').textContent=q[1]; $('#feedback').textContent=''; $('#feedback').className='feedback'; $('#continueButton').hidden=true; const options=[{text:q[2],ok:false},{text:q[3],ok:false},{text:q[4],ok:true}]; $('#choices').replaceChildren(...shuffle(options).map(o=>{const b=document.createElement('button');b.textContent=o.text;b.onclick=()=>answer(b,o.ok,q[4]);return b;})); $('#quizOverlay').hidden=false; }
+    function answer(button, ok, rationale) { document.querySelectorAll('#choices button').forEach(b=>b.disabled=true); button.classList.add(ok?'correct':'wrong'); if(!ok) [...document.querySelectorAll('#choices button')].find(b=>b.textContent===rationale).classList.add('correct'); if(ok) correct++; $('#score').textContent=`${correct} / 10`; $('#feedback').textContent=ok?'Bonne réponse ! La mission continue.':'Pas tout à fait. La bonne réponse est mise en évidence.'; $('#feedback').classList.add(ok?'ok':'no'); $('#continueButton').hidden=false; }
+    function continueGame() { $('#quizOverlay').hidden=true; questionIndex++; if(questionIndex===10){ endGame(correct>8?'Compétences validées':'Mission à consolider', correct>8?'Excellent : vous maîtrisez les fondamentaux de la cyberdéfense.':'Revoyez les thèmes signalés, puis retentez la mission pour valider vos compétences.'); return; } placeFood(); running=true; timer=setInterval(tick,112); draw(); }
+    function endGame(title,text) { clearInterval(timer); running=false; $('#finalScore').textContent=`${correct} / 10`; $('#finalTitle').textContent=title; $('#finalText').textContent=text; $('#finalOverlay').hidden=false; }
+    function start() { snake=[{x:12,y:12},{x:11,y:12},{x:10,y:12}]; direction={x:1,y:0}; nextDirection=direction; quizSet=chooseQuestions();questionIndex=0;correct=0; $('#score').textContent='0 / 10';placeFood();draw();running=true;timer=setInterval(tick,112); }
+    document.addEventListener('keydown',e=>{const map={ArrowUp:[0,-1],z:[0,-1],Z:[0,-1],ArrowDown:[0,1],s:[0,1],S:[0,1],ArrowLeft:[-1,0],q:[-1,0],Q:[-1,0],ArrowRight:[1,0],d:[1,0],D:[1,0]}; const v=map[e.key];if(v){e.preventDefault();if(v[0]!==-direction.x||v[1]!==-direction.y)nextDirection={x:v[0],y:v[1]};}});
+    $('#startButton').onclick=()=>{$('#startOverlay').hidden=true;start();}; $('#continueButton').onclick=continueGame; $('#restartButton').onclick=()=>{$('#finalOverlay').hidden=true;start();};
+  </script>
+</body>
+</html>
